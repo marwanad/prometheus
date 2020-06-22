@@ -62,6 +62,12 @@ func main() {
 		"The rule files to check.",
 	).Required().ExistingFiles()
 
+	checkSyntaxCmd := checkCmd.Command("syntax", "Check if the config files have a valid syntax or not.")
+	syntaxFiles := checkSyntaxCmd.Arg(
+		"config-files",
+		"The config files to check for valid syntax.",
+	).Required().ExistingFiles()
+
 	checkMetricsCmd := checkCmd.Command("metrics", checkMetricsUsage)
 
 	queryCmd := app.Command("query", "Run query against a Prometheus server.")
@@ -117,6 +123,9 @@ func main() {
 	case checkConfigCmd.FullCommand():
 		os.Exit(CheckConfig(*configFiles...))
 
+	case checkSyntaxCmd.FullCommand():
+		os.Exit(CheckSyntax(*syntaxFiles...))
+
 	case checkRulesCmd.FullCommand():
 		os.Exit(CheckRules(*ruleFiles...))
 
@@ -147,6 +156,27 @@ func main() {
 	case testRulesCmd.FullCommand():
 		os.Exit(RulesUnitTest(*testRulesFiles...))
 	}
+}
+
+// CheckSyntax checks the config files for valid prometheus config syntax
+func CheckSyntax(files ...string) int {
+	failed := false
+
+	for _, f := range files {
+		fmt.Println("Checking syntax for", f)
+		_, err := config.LoadFile(f)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "  FAILED:", err)
+			failed = true
+		} else {
+			fmt.Printf("  SUCCESS: %s has a valid syntax", f)
+		}
+		fmt.Println()
+	}
+	if failed {
+		return 1
+	}
+	return 0
 }
 
 // CheckConfig validates configuration files.
